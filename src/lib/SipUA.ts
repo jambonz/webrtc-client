@@ -1,5 +1,5 @@
 import * as events from "events";
-import {UA, WebSocketInterface} from "jssip";
+import {UA, WebSocketInterface, debug} from "jssip";
 import {DisconnectEvent} from "jssip/lib/WebSocketInterface";
 import {RTCSession} from "jssip/lib/RTCSession";
 import {
@@ -26,6 +26,7 @@ export default class SipUA extends events.EventEmitter {
 
     constructor(client: SipModel.ClientAuth, settings: SipModel.ClientOptions) {
         super();
+        debug.enable('JsSIP:*');
         this.#sessionManager = new SessionManager();
         this.#rtcConfig = settings.pcConfig;
         this.#ua = new UA({

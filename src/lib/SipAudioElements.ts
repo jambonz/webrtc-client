@@ -33,7 +33,9 @@ export default class SipAudioElements {
     }
 
     pauseRinging(): void {
-        this.#ringing.pause();
+        if (!this.#ringing.paused) {
+            this.#ringing.pause();
+        }
     }
 
     playFailed(volume: number | undefined): void {
@@ -59,5 +61,10 @@ export default class SipAudioElements {
     playRemote(stream: MediaStream) {
         this.#remote.srcObject = stream;
         this.#remote.play();
+    }
+
+    isPLaying(audio: HTMLAudioElement) {
+        return audio.currentTime > 0 && !audio.paused && !audio.ended
+            && audio.readyState > audio.HAVE_CURRENT_DATA;
     }
 }
