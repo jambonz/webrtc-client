@@ -128,6 +128,7 @@ class Phone extends LitElement {
     }
 
     _createSipClient() {
+
         const client = {
             username: "xxx@jambonz.org",
             password: "1234",
