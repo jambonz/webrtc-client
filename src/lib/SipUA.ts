@@ -49,6 +49,7 @@ export default class SipUA extends events.EventEmitter {
         this.#ua.on('newRTCSession', (data: IncomingRTCSessionEvent) => {
             const rtcSession: RTCSession = data.session;
             const session: SipSession = new SipSession(rtcSession, this.#rtcConfig, new SipAudioElements());
+            this.#sessionManager.newSession(session);
             session.on(SipConstants.SESSION_RINGING, args => this.#sessionManager.updateSession(SipConstants.SESSION_RINGING, session, args));
             session.on(SipConstants.SESSION_ANSWERED, args => this.#sessionManager.updateSession(SipConstants.SESSION_ANSWERED, session, args));
             session.on(SipConstants.SESSION_FAILED, args => this.#sessionManager.updateSession(SipConstants.SESSION_FAILED, session, args));
@@ -60,7 +61,6 @@ export default class SipUA extends events.EventEmitter {
                 this.#sessionManager.updateSession(SipConstants.SESSION_ACTIVE, session, args);
             });
             session.setActive(true);
-            this.#sessionManager.newSession(session);
         });
     }
 
@@ -74,8 +74,7 @@ export default class SipUA extends events.EventEmitter {
         this.emit(SipConstants.UA_STOP);
     }
 
-    call(number: string):
-        void {
+    call(number: string): void {
         let normalizedNumber: string = normalizeNumber(number);
         this.#ua.call(normalizedNumber, {
             extraHeaders: [`X-Original-Number:${number}`],
