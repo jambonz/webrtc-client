@@ -2,6 +2,9 @@ import {LitElement, html, css} from 'lit-element';
 import {SipUA} from "../lib";
 import {SipConstants} from "../lib";
 
+const CALL_LABEL = "Call";
+const CALLING_LABEL = "Dialing...";
+const HANGUP_LABEL = "Hang Up";
 class Phone extends LitElement {
     static styles = css`
       .number-display {
@@ -76,7 +79,9 @@ class Phone extends LitElement {
     static get properties() {
         return {
             props: {type: Object},
-            toNumber: {type: String}
+            toNumber: {type: String},
+            callButtionLabel: {type: String},
+            isButtonDisabled: { type: Boolean }
         };
     }
 
@@ -85,6 +90,8 @@ class Phone extends LitElement {
         this.props = {};
         this.toNumber = '';
         this.sipClient = this._createSipClient();
+        this.callButtionLabel = CALL_LABEL;
+        this.isButtonDisabled = true;
     }
 
     render() {
@@ -121,8 +128,8 @@ class Phone extends LitElement {
                 })}
             </div>
 
-            <button class="call-button" @click="${this._handleCall}">
-                Call
+            <button class="call-button" ${this.isButtonDisabled ? "disabled" : ""} @click="${this._handleCall}">
+                ${this.callButtionLabel}
             </button>
         `;
     }
@@ -130,15 +137,15 @@ class Phone extends LitElement {
     _createSipClient() {
 
         const client = {
-            username: "xxx@jambonz.org",
-            password: "1234",
-            name: "Antony Jukes"
+            username: "abcs@hoan.jambonz.one",
+            password: "123457",
+            name: "Hoan HL"
         }
         const settings = {
             pcConfig: {
                 iceServers: [{urls: ['stun:stun.l.google.com:19302']}],
             },
-            wsUri: "wss://foo.jambonz.org:8443",
+            wsUri: "wss://jambonz.org:8443",
         };
         const sipUA = new SipUA(client, settings);
         sipUA.on(SipConstants.UA_CONNECTING, args => {
@@ -146,20 +153,40 @@ class Phone extends LitElement {
         });
         sipUA.on(SipConstants.UA_REGISTERED, args => {
             console.log(SipConstants.UA_REGISTERED, args);
+            this.isButtonDisabled = false;
         });
         sipUA.on(SipConstants.UA_UNREGISTERED, args => {
             console.log(SipConstants.UA_UNREGISTERED, args);
+            this.isButtonDisabled = true;
+        });
+        sipUA.on(SipConstants.SESSION_ANSWERED, args => {
+            console.log(SipConstants.SESSION_ANSWERED, args);
+            this.callButtionLabel = HANGUP_LABEL;
+        });
+        sipUA.on(SipConstants.SESSION_ENDED, args => {
+            console.log(SipConstants.SESSION_ENDED, args);
+            this.callButtionLabel = CALL_LABEL;
         });
         sipUA.start();
+
+        return sipUA;
     }
 
     _handleClick(num) {
         this.toNumber += num;
+        if (this.callButtionLabel !== CALL_LABEL) {
+            this.sipClient.dtmf(num);
+        }
     }
 
     _handleCall() {
-        console.log(`Calling...`);
-        this.sipClient.call(this.toNumber, '121241231');
+        if (this.callButtionLabel === CALL_LABEL) {
+            this.callButtionLabel = CALLING_LABEL;
+            this.sipClient.call(this.toNumber);
+        } else {
+            this.sipClient.terminate(480, "Finished Call");
+        }
+        
     }
 
     _handleInput(event) {

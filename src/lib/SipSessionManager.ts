@@ -5,22 +5,26 @@ import {
 
 export default class SipSessionManager {
 
-    #sessions: SipModel.SipSessionState[];
+    #sessions: Map<string, SipModel.SipSessionState>;
 
     constructor() {
-        this.#sessions = [];
+        this.#sessions = new Map();
     }
 
     activate(session: SipSession) {
-        this.#sessions.forEach(state => {
-            if (session.id !== state.id) {
-                state.active = false;
+        this.#sessions.forEach((v, k) => {
+            if (k !== session.id) {
+                v.active = false;
                 session.setActive(false);
+            } else {
+                v.active = true;
+                session.setActive(true);
             }
         });
     }
 
     updateSession(field: string, session: SipSession, args: any): void {
+        
         const state: SipModel.SipSessionState = this.getSessionState(session.id);
         if (state) {
             switch (field) {
@@ -30,7 +34,8 @@ export default class SipSessionManager {
                 case SipConstants.SESSION_ANSWERED:
                     state.status = args.status;
                     break;
-                case SipConstants.SESSION_FAILED || SipConstants.SESSION_ENDED:
+                case SipConstants.SESSION_FAILED:
+                case SipConstants.SESSION_ENDED:
                     state.status = args.status;
                     state.endState = {
                         cause: args.cause,
@@ -38,6 +43,7 @@ export default class SipSessionManager {
                         originator: args.endState,
                         description: args.description
                     }
+                    this.#sessions.delete(session.id);
                     break;
                 case SipConstants.SESSION_MUTED:
                     state.muteStatus = args.status;
@@ -59,7 +65,7 @@ export default class SipSessionManager {
     }
 
     getSessionState(id: string): SipModel.SipSessionState {
-        const state = this.#sessions.find(value => value.id === id);
+        const state = this.#sessions.get(id);
         if (!state) {
             throw new Error("Session not found");
         }
@@ -73,27 +79,30 @@ export default class SipSessionManager {
 
 
     newSession(session: SipSession): void {
-        this.#sessions.push({
-            id: session.id,
-            sipSession: session,
-            startDateTime: new Date(),
-            active: true,
-            status: 'init',
+        this.#sessions.set(session.id, 
+            {
+                id: session.id,
+                sipSession: session,
+                startDateTime: new Date(),
+                active: true,
+                status: 'init',
         });
     }
 
     get activeSession(): SipSession {
-        const state = this.#sessions.find(value => value.active);
-        if (state) {
-            return state.sipSession;
-        }
-        if (this.#sessions.length === 0) {
+        if (this.#sessions.size === 0) {
             throw new Error("No sessions");
         }
-        return this.#sessions[0].sipSession;
+
+        const state = [...this.#sessions.values()].filter((s) => s.active);
+        if (state.length) {
+            return state[0].sipSession;
+        } else {
+            throw new Error("No Active sessions");
+        }
     }
 
     get count() {
-        return this.#sessions.length;
+        return this.#sessions.size;
     }
 }

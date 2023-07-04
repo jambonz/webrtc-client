@@ -51,18 +51,23 @@ export default class SipUA extends events.EventEmitter {
             const rtcSession: RTCSession = data.session;
             const session: SipSession = new SipSession(rtcSession, this.#rtcConfig, new SipAudioElements());
             this.#sessionManager.newSession(session);
-            session.on(SipConstants.SESSION_RINGING, args => this.#sessionManager.updateSession(SipConstants.SESSION_RINGING, session, args));
-            session.on(SipConstants.SESSION_ANSWERED, args => this.#sessionManager.updateSession(SipConstants.SESSION_ANSWERED, session, args));
-            session.on(SipConstants.SESSION_FAILED, args => this.#sessionManager.updateSession(SipConstants.SESSION_FAILED, session, args));
-            session.on(SipConstants.SESSION_ENDED, args => this.#sessionManager.updateSession(SipConstants.SESSION_ENDED, session, args));
-            session.on(SipConstants.SESSION_MUTED, args => this.#sessionManager.updateSession(SipConstants.SESSION_MUTED, session, args));
-            session.on(SipConstants.SESSION_HOLD, args => this.#sessionManager.updateSession(SipConstants.SESSION_HOLD, session, args));
-            session.on(SipConstants.SESSION_ICE_READY, args => this.#sessionManager.updateSession(SipConstants.SESSION_ICE_READY, session, args));
+            session.on(SipConstants.SESSION_RINGING, args => this.updateSession(SipConstants.SESSION_RINGING, session, args, client));
+            session.on(SipConstants.SESSION_ANSWERED, args => this.updateSession(SipConstants.SESSION_ANSWERED, session, args, client));
+            session.on(SipConstants.SESSION_FAILED, args => this.updateSession(SipConstants.SESSION_FAILED, session, args, client));
+            session.on(SipConstants.SESSION_ENDED, args => this.updateSession(SipConstants.SESSION_ENDED, session, args, client));
+            session.on(SipConstants.SESSION_MUTED, args => this.updateSession(SipConstants.SESSION_MUTED, session, args, client));
+            session.on(SipConstants.SESSION_HOLD, args => this.updateSession(SipConstants.SESSION_HOLD, session, args, client));
+            session.on(SipConstants.SESSION_ICE_READY, args => this.updateSession(SipConstants.SESSION_ICE_READY, session, args, client));
             session.on(SipConstants.SESSION_ACTIVE, args => {
-                this.#sessionManager.updateSession(SipConstants.SESSION_ACTIVE, session, args);
+                this.updateSession(SipConstants.SESSION_ACTIVE, session, args, client);
             });
             session.setActive(true);
         });
+    }
+
+    updateSession(field: string, session: SipSession, args: any, client: SipModel.ClientAuth) {
+        this.emit(field, {...args, client});
+        this.#sessionManager.updateSession(field, session, args);
     }
 
     start(): void {
